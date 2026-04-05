@@ -73,7 +73,14 @@ install_deps() {
   echo -e "${AZUL}[i] Instalando dependencias npm...${RESET}"
   cd "$APP_DIR"
   export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-  npm install --production
+  NPM_BIN=$(which npm 2>/dev/null || echo "/usr/bin/npm")
+  if [[ ! -x "$NPM_BIN" ]]; then
+    echo -e "${ROJO}[-] npm no encontrado. Instalando...${RESET}"
+    apt install npm -y
+    NPM_BIN=$(which npm)
+  fi
+  "$NPM_BIN" install --production
+  echo -e "${VERDE}[+] Dependencias instaladas.${RESET}"
 }
 
 # Función: Detectar ruta de Chromium

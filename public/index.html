@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CumpleBot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c0a14;
+      --card: #161225;
+      --card-hover: #1e1833;
+      --input: #1a1530;
+      --border: #2a2445;
+      --focus: #7c5cfc;
+      --accent: #7c5cfc;
+      --accent-glow: rgba(124,92,252,0.3);
+      --accent-soft: rgba(124,92,252,0.12);
+      --green: #34d399;
+      --green-soft: rgba(52,211,153,0.12);
+      --red: #f87171;
+      --red-soft: rgba(248,113,113,0.12);
+      --orange: #fb923c;
+      --orange-soft: rgba(251,146,60,0.12);
+      --text: #e8e4f0;
+      --dim: #9b93b0;
+      --muted: #6b6280;
+      --r: 14px;
+      --rs: 8px;
+      --font: 'DM Sans', sans-serif;
+      --display: 'Playfair Display', Georgia, serif;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(124,92,252,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(251,146,60,0.05) 0%, transparent 60%);
+      pointer-events:none; z-index:0;
+    }
+    .app { display:flex; min-height:100vh; position:relative; z-index:1; }
+
+    /* Sidebar */
+    .sidebar {
+      width:250px; background:var(--card); border-right:1px solid var(--border);
+      padding:24px 0; display:flex; flex-direction:column; position:fixed;
+      top:0; bottom:0; left:0; z-index:100; transition:transform .3s;
+    }
+    .logo { padding:0 24px 24px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+    .logo h1 {
+      font-family:var(--display); font-size:24px; font-weight:800;
+      background:linear-gradient(135deg,#7c5cfc,#fb923c);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .logo small { display:block; color:var(--muted); font-size:11px; margin-top:4px; font-weight:500; letter-spacing:1px; text-transform:uppercase; }
+    .nav { flex:1; padding:8px 12px; }
+    .nav-item {
+      display:flex; align-items:center; gap:12px; padding:11px 16px;
+      border-radius:var(--rs); color:var(--dim); cursor:pointer; font-size:13px;
+      font-weight:500; transition:all .2s; border:none; background:none;
+      width:100%; text-align:left; margin-bottom:2px;
+    }
+    .nav-item:hover { color:var(--text); background:var(--accent-soft); }
+    .nav-item.active { color:#fff; background:linear-gradient(135deg,var(--accent),#9b7afc); box-shadow:0 2px 12px var(--accent-glow); }
+    .nav-item svg { width:18px; height:18px; flex-shrink:0; }
+    .wa-box {
+      margin:12px; padding:12px 16px; border-radius:var(--rs);
+      border:1px solid var(--border); background:var(--bg); font-size:12px;
+    }
+    .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:8px; }
+    .dot.on { background:var(--green); box-shadow:0 0 6px var(--green); }
+    .dot.off { background:var(--red); }
+    .dot.wait { background:var(--orange); animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Main */
+    .main { margin-left:250px; flex:1; padding:28px; min-height:100vh; }
+    .page { display:none; }
+    .page.active { display:block; animation:fadeIn .25s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .page-hdr { margin-bottom:24px; }
+    .page-hdr h2 { font-family:var(--display); font-size:28px; font-weight:800; }
+    .page-hdr p { color:var(--dim); font-size:13px; margin-top:4px; }
+
+    /* Cards & Stats */
+    .card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:22px; margin-bottom:18px; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:24px; }
+    .stat { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:20px; transition:transform .2s, border-color .2s; }
+    .stat:hover { transform:translateY(-2px); border-color:var(--accent); }
+    .stat-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; font-size:20px; }
+    .stat-val { font-size:28px; font-weight:700; letter-spacing:-1px; }
+    .stat-lbl { color:var(--dim); font-size:12px; margin-top:2px; font-weight:500; }
+
+    /* Table */
+    .tw { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th { text-align:left; color:var(--muted); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; padding:10px 14px; border-bottom:1px solid var(--border); }
+    td { padding:12px 14px; border-bottom:1px solid var(--border); font-size:13px; }
+    tr:hover td { background:var(--accent-soft); }
+    .badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+    .bg { background:var(--green-soft); color:var(--green); }
+    .br { background:var(--red-soft); color:var(--red); }
+    .bo { background:var(--orange-soft); color:var(--orange); }
+    .bp { background:var(--accent-soft); color:var(--accent); }
+
+    /* Buttons */
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border-radius:var(--rs); font-family:var(--font); font-size:13px; font-weight:600; border:none; cursor:pointer; transition:all .2s; }
+    .btn-p { background:linear-gradient(135deg,var(--accent),#9b7afc); color:#fff; box-shadow:0 2px 12px var(--accent-glow); }
+    .btn-p:hover { transform:translateY(-1px); box-shadow:0 4px 20px var(--accent-glow); }
+    .btn-g { background:var(--accent-soft); color:var(--accent); }
+    .btn-g:hover { background:rgba(124,92,252,.2); }
+    .btn-d { background:var(--red-soft); color:var(--red); }
+    .btn-d:hover { background:rgba(248,113,113,.2); }
+    .btn-sm { padding:5px 10px; font-size:11px; }
+    .btn-i { width:34px; height:34px; padding:0; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:var(--accent-soft); color:var(--accent); border:none; cursor:pointer; transition:all .2s; font-size:14px; }
+    .btn-i:hover { background:rgba(124,92,252,.2); }
+    .btn-i.d { background:var(--red-soft); color:var(--red); }
+    .btn-i.d:hover { background:rgba(248,113,113,.2); }
+    .acts { display:flex; gap:5px; }
+
+    /* Forms */
+    .fg { margin-bottom:14px; }
+    .fg.full { grid-column:1/-1; }
+    .fg label { display:block; font-size:12px; font-weight:600; color:var(--dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px; }
+    .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    input,select,textarea {
+      width:100%; padding:9px 12px; background:var(--input); border:1px solid var(--border);
+      border-radius:var(--rs); color:var(--text); font-family:var(--font); font-size:13px; transition:border-color .2s;
+    }
+    input:focus,select:focus,textarea:focus { outline:none; border-color:var(--focus); box-shadow:0 0 0 3px var(--accent-glow); }
+    textarea { resize:vertical; min-height:90px; }
+
+    /* Modal */
+    .mo { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:200; }
+    .mo.active { display:flex; }
+    .modal { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:26px; width:90%; max-width:520px; max-height:85vh; overflow-y:auto; box-shadow:0 4px 24px rgba(0,0,0,.3); animation:mIn .25s ease; }
+    @keyframes mIn { from{opacity:0;transform:scale(.95)} }
+    .modal h3 { font-family:var(--display); font-size:20px; margin-bottom:18px; }
+    .modal-acts { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+
+    /* QR */
+    .qr { text-align:center; padding:28px; }
+    .qr img { max-width:260px; border-radius:var(--r); border:2px solid var(--border); margin:18px 0; }
+
+    /* Upcoming */
+    .up-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+    .up-item:last-child { border-bottom:none; }
+    .up-av { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#fb923c); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#fff; flex-shrink:0; }
+    .up-info { flex:1; }
+    .up-name { font-weight:600; font-size:13px; }
+    .up-date { color:var(--dim); font-size:11px; margin-top:1px; }
+
+    /* Toggle */
+    .tg { position:relative; width:42px; height:22px; display:inline-block; }
+    .tg input { opacity:0; width:0; height:0; }
+    .tg-s { position:absolute; inset:0; background:var(--input); border:1px solid var(--border); border-radius:11px; cursor:pointer; transition:.3s; }
+    .tg-s::before { content:''; position:absolute; width:16px; height:16px; left:2px; top:2px; background:var(--dim); border-radius:50%; transition:.3s; }
+    .tg input:checked+.tg-s { background:var(--accent); border-color:var(--accent); }
+    .tg input:checked+.tg-s::before { transform:translateX(20px); background:#fff; }
+
+    /* Toolbar */
+    .tb { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+    .tb-search { position:relative; flex:0 1 280px; }
+    .tb-search input { padding-left:36px; }
+    .tb-search svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--muted); }
+
+    /* Toast */
+    .toasts { position:fixed; top:18px; right:18px; z-index:300; display:flex; flex-direction:column; gap:6px; }
+    .toast { padding:12px 18px; border-radius:var(--rs); font-size:12px; font-weight:500; animation:tIn .3s ease; box-shadow:0 4px 24px rgba(0,0,0,.3); }
+    .toast.s { background:#065f46; color:var(--green); border:1px solid rgba(52,211,153,.3); }
+    .toast.e { background:#7f1d1d; color:var(--red); border:1px solid rgba(248,113,113,.3); }
+    .toast.i { background:#312e81; color:var(--accent); border:1px solid rgba(124,92,252,.3); }
+    @keyframes tIn { from{opacity:0;transform:translateX(30px)} }
+
+    .empty { text-align:center; padding:40px 20px; color:var(--dim); }
+    .empty-ico { font-size:40px; margin-bottom:12px; }
+
+    /* Mobile */
+    .mob-btn { display:none; position:fixed; top:14px; left:14px; z-index:150; width:42px; height:42px; border-radius:10px; background:var(--card); border:1px solid var(--border); color:var(--text); align-items:center; justify-content:center; cursor:pointer; }
+    @media(max-width:768px) {
+      .sidebar { transform:translateX(-100%); }
+      .sidebar.open { transform:translateX(0); }
+      .main { margin-left:0; padding:18px; padding-top:66px; }
+      .mob-btn { display:flex; }
+      .stats { grid-template-columns:1fr 1fr; }
+      .fgrid { grid-template-columns:1fr; }
+    }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  </style>
+</head>
+<body>
+
+<button class="mob-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</button>
+
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <h1>CumpleBot</h1>
+    <small>Felicitaciones WhatsApp</small>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+    <button class="nav-item" data-page="contacts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Contactos</button>
+    <button class="nav-item" data-page="groups"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Grupos</button>
+    <button class="nav-item" data-page="templates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Plantillas</button>
+    <button class="nav-item" data-page="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Historial</button>
+    <button class="nav-item" data-page="whatsapp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.82 0-3.543-.478-5.04-1.313l-.36-.214-3.76.869.9-3.645-.235-.374A9.936 9.936 0 012 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10z"/></svg>WhatsApp</button>
+    <button class="nav-item" data-page="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Ajustes</button>
+  </nav>
+  <div class="wa-box">
+    <span class="dot off" id="dot"></span>
+    <span id="stxt" style="font-weight:500;">Desconectado</span>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-hdr"><h2>Dashboard</h2><p>Resumen de cumpleaños y actividad</p></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-icon" style="background:var(--accent-soft);color:var(--accent);">👥</div><div class="stat-val" id="s1">0</div><div class="stat-lbl">Contactos activos</div></div>
+      <div class="stat"><div class="stat-icon" style="background:var(--green-soft);color:var(--green);">📁</div><div class="stat-val" id="s2">0</div><div class="stat-lbl">Grupos</div></div>
+      <div class="stat"><div class="stat-icon" style="background:var(--orange-soft);color:var(--orange);">📨</div><div class="stat-val" id="s3">0</div><div class="stat-lbl">Mensajes enviados</div></div>
+      <div class="stat"><div class="stat-icon" style="background:var(--green-soft);color:var(--green);">📱</div><div class="stat-val" id="s4" style="font-size:15px;">—</div><div class="stat-lbl">Estado WhatsApp</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+      <div class="card"><h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🎂 Hoy cumplen</h3><div id="todayB"><div class="empty"><p>Nadie cumple hoy</p></div></div></div>
+      <div class="card"><h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">📅 Próximos 30 días</h3><div id="upB"><div class="empty"><p>Sin cumpleaños próximos</p></div></div></div>
+    </div>
+  </div>
+
+  <!-- CONTACTS -->
+  <div class="page" id="page-contacts">
+    <div class="page-hdr"><h2>Contactos</h2><p>Gestiona las personas a las que felicitar</p></div>
+    <div class="tb">
+      <div class="tb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" placeholder="Buscar..." id="cSearch" oninput="renderC()"></div>
+      <div style="display:flex;gap:8px;"><select id="cFilter" style="width:auto;min-width:130px;" onchange="renderC()"><option value="">Todos</option></select><button class="btn btn-p" onclick="openCM()">+ Nuevo</button></div>
+    </div>
+    <div class="card"><div class="tw"><table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Cumpleaños</th><th>Grupo</th><th>Recordatorio</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="cTb"></tbody></table></div><div class="empty" id="cE" style="display:none;"><div class="empty-ico">📇</div><p>Sin contactos. ¡Añade el primero!</p></div></div>
+  </div>
+
+  <!-- GROUPS -->
+  <div class="page" id="page-groups">
+    <div class="page-hdr"><h2>Grupos</h2><p>Organiza contactos por categorías</p></div>
+    <div class="tb"><div></div><button class="btn btn-p" onclick="openGM()">+ Nuevo</button></div>
+    <div class="card"><div class="tw"><table><thead><tr><th>Nombre</th><th>Color</th><th>Contactos</th><th>Acciones</th></tr></thead><tbody id="gTb"></tbody></table></div><div class="empty" id="gE" style="display:none;"><div class="empty-ico">📁</div><p>Sin grupos.</p></div></div>
+  </div>
+
+  <!-- TEMPLATES -->
+  <div class="page" id="page-templates">
+    <div class="page-hdr"><h2>Plantillas</h2><p>Mensajes de felicitación. Usa <code style="background:var(--input);padding:2px 6px;border-radius:4px;">{nombre}</code> para insertar el nombre.</p></div>
+    <div class="tb"><div></div><button class="btn btn-p" onclick="openTM()">+ Nueva</button></div>
+    <div id="tList"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page" id="page-history">
+    <div class="page-hdr"><h2>Historial</h2><p>Registro de mensajes enviados</p></div>
+    <div class="card"><div class="tw"><table><thead><tr><th>Fecha</th><th>Contacto</th><th>Tipo</th><th>Estado</th><th>Mensaje</th></tr></thead><tbody id="hTb"></tbody></table></div><div class="empty" id="hE" style="display:none;"><div class="empty-ico">📋</div><p>Sin registros.</p></div></div>
+  </div>
+
+  <!-- WHATSAPP -->
+  <div class="page" id="page-whatsapp">
+    <div class="page-hdr"><h2>WhatsApp</h2><p>Vincula tu cuenta para enviar felicitaciones</p></div>
+    <div class="card"><div class="qr" id="qrS"><p style="color:var(--dim)">Cargando...</p></div></div>
+    <div class="card" style="margin-top:18px;">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🧪 Mensaje de prueba</h3>
+      <div class="fgrid">
+        <div class="fg"><label>Teléfono</label><input type="tel" id="tPh" placeholder="+34612345678"></div>
+        <div class="fg"><label>Mensaje</label><input type="text" id="tMs" value="🧪 Prueba de CumpleBot"></div>
+      </div>
+      <button class="btn btn-p" onclick="sendTest()">Enviar prueba</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="page-hdr"><h2>Ajustes</h2><p>Configura el comportamiento</p></div>
+    <div class="card">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:18px;">⏰ Hora de envío</h3>
+      <div class="fgrid">
+        <div class="fg"><label>Hora</label><select id="sH"></select></div>
+        <div class="fg"><label>Minuto</label><select id="sM"></select></div>
+      </div>
+      <div class="fg" style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+        <label class="tg"><input type="checkbox" id="sR"><span class="tg-s"></span></label>
+        <span style="font-size:13px;">Activar recordatorios previos</span>
+      </div>
+      <button class="btn btn-p" style="margin-top:18px;" onclick="saveSets()">Guardar</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:14px;">🔧 Acciones</h3>
+      <button class="btn btn-g" onclick="triggerChk()">▶️ Comprobación manual</button>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- MODALS -->
+<div class="mo" id="cMod"><div class="modal"><h3 id="cMT">Nuevo contacto</h3><input type="hidden" id="cId"><div class="fgrid"><div class="fg"><label>Nombre *</label><input type="text" id="cN" placeholder="María García"></div><div class="fg"><label>Teléfono *</label><input type="tel" id="cP" placeholder="+34612345678"></div><div class="fg"><label>Cumpleaños *</label><input type="date" id="cB"></div><div class="fg"><label>Grupo</label><select id="cG"><option value="">Sin grupo</option></select></div><div class="fg"><label>Recordar X días antes</label><input type="number" id="cR" value="1" min="0" max="30"></div><div class="fg" style="display:flex;align-items:end;gap:12px;"><label class="tg"><input type="checkbox" id="cA" checked><span class="tg-s"></span></label><span style="font-size:13px;">Activo</span></div><div class="fg full"><label>Mensaje personalizado <small style="font-weight:400;text-transform:none;letter-spacing:0;">(vacío = plantilla por defecto)</small></label><textarea id="cMs" placeholder="¡Feliz cumpleaños, {nombre}! 🎂"></textarea></div></div><div class="modal-acts"><button class="btn btn-g" onclick="closeM('cMod')">Cancelar</button><button class="btn btn-p" onclick="saveC()">Guardar</button></div></div></div>
+
+<div class="mo" id="gMod"><div class="modal"><h3 id="gMT">Nuevo grupo</h3><input type="hidden" id="gId"><div class="fg"><label>Nombre *</label><input type="text" id="gN" placeholder="Familia, Trabajo..."></div><div class="fg"><label>Color</label><input type="color" id="gCo" value="#6366f1" style="height:42px;padding:4px;"></div><div class="modal-acts"><button class="btn btn-g" onclick="closeM('gMod')">Cancelar</button><button class="btn btn-p" onclick="saveG()">Guardar</button></div></div></div>
+
+<div class="mo" id="tMod"><div class="modal"><h3 id="tMT">Nueva plantilla</h3><input type="hidden" id="tId"><div class="fg"><label>Nombre *</label><input type="text" id="tN" placeholder="Cumpleaños formal"></div><div class="fg"><label>Mensaje *</label><textarea id="tTx" rows="5" placeholder="¡Feliz cumpleaños, {nombre}! 🎂"></textarea></div><div class="fg" style="display:flex;align-items:center;gap:12px;"><label class="tg"><input type="checkbox" id="tDf"><span class="tg-s"></span></label><span style="font-size:13px;">Por defecto</span></div><div class="modal-acts"><button class="btn btn-g" onclick="closeM('tMod')">Cancelar</button><button class="btn btn-p" onclick="saveT()">Guardar</button></div></div></div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+let contacts=[],groups=[],templates=[];
+
+// Nav
+document.querySelectorAll('.nav-item').forEach(n=>{n.addEventListener('click',()=>{
+  const p=n.dataset.page;
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  n.classList.add('active');
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('sidebar').classList.remove('open');
+  ({dashboard:loadDash,contacts:loadC,groups:loadG,templates:loadT,history:loadH,whatsapp:updWA,settings:loadSets})[p]();
+});});
+
+function toast(m,t='s'){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),3500);}
+function openM(id){document.getElementById(id).classList.add('active');}
+function closeM(id){document.getElementById(id).classList.remove('active');}
+async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);return(await fetch(u,o)).json();}
+function fmtD(d){if(!d)return'—';const[,m,dy]=d.split('-');const ms=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];return parseInt(dy)+' '+ms[parseInt(m)-1];}
+function fmtDT(d){if(!d)return'—';return new Date(d).toLocaleString('es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+// WhatsApp status
+async function chkWA(){
+  try{
+    const d=await api('/api/whatsapp/status');
+    const dot=document.getElementById('dot'),txt=document.getElementById('stxt');
+    dot.className='dot';
+    if(d.status==='connected'){dot.classList.add('on');txt.textContent=d.info?d.info.pushname:'Conectado';}
+    else if(d.status==='qr_ready'){dot.classList.add('wait');txt.textContent='Esperando QR...';}
+    else{dot.classList.add('off');txt.textContent=d.status==='error'?'Error':'Desconectado';}
+    return d;
+  }catch{return{status:'error'};}
+}
+async function updWA(){
+  const d=await chkWA(),s=document.getElementById('qrS');
+  if(d.status==='connected')s.innerHTML=`<div style="font-size:44px;margin-bottom:14px;">✅</div><h3 style="color:var(--green);margin-bottom:6px;">Conectado</h3><p style="color:var(--dim);margin-bottom:2px;">Nombre: <strong>${d.info?.pushname||'—'}</strong></p><p style="color:var(--dim);margin-bottom:18px;">Teléfono: <strong>${d.info?.phone||'—'}</strong></p><button class="btn btn-d" onclick="logoutWA()">Desconectar</button>`;
+  else if(d.status==='qr_ready'&&d.qr)s.innerHTML=`<h3 style="margin-bottom:6px;">Escanea el código QR</h3><p style="color:var(--dim);margin-bottom:6px;">WhatsApp → Dispositivos vinculados → Vincular</p><img src="${d.qr}" alt="QR"><p style="color:var(--muted);font-size:11px;">Se actualiza automáticamente</p>`;
+  else s.innerHTML=`<div style="font-size:44px;margin-bottom:14px;">📱</div><h3 style="margin-bottom:6px;">Conectando...</h3><p style="color:var(--dim)">Espera al código QR.</p><div style="margin-top:14px;"><span class="dot wait"></span> Iniciando...</div>`;
+}
+async function logoutWA(){if(!confirm('¿Desconectar WhatsApp?'))return;await api('/api/whatsapp/logout','POST');toast('Desconectado','i');updWA();}
+
+// Dashboard
+async function loadDash(){
+  const s=await api('/api/stats');
+  document.getElementById('s1').textContent=s.totalContacts;
+  document.getElementById('s2').textContent=s.totalGroups;
+  document.getElementById('s3').textContent=s.totalSent;
+  const sm={connected:'🟢 Conectado',qr_ready:'🟡 Esperando QR',disconnected:'🔴 Desconectado',error:'🔴 Error'};
+  document.getElementById('s4').textContent=sm[s.whatsappStatus]||s.whatsappStatus;
+  const te=document.getElementById('todayB');
+  te.innerHTML=s.todayBirthdays.length?s.todayBirthdays.map(c=>`<div class="up-item"><div class="up-av">${c.name.charAt(0)}</div><div class="up-info"><div class="up-name">${c.name}</div><div class="up-date">${c.phone}</div></div><span class="badge bg">¡HOY! 🎂</span></div>`).join(''):'<div class="empty"><p>Nadie cumple hoy</p></div>';
+  const ue=document.getElementById('upB');
+  ue.innerHTML=s.upcoming.length?s.upcoming.slice(0,8).map(c=>`<div class="up-item"><div class="up-av">${c.name.charAt(0)}</div><div class="up-info"><div class="up-name">${c.name}</div><div class="up-date">${fmtD(c.birthday)}</div></div><span class="badge ${c.daysUntil===0?'bg':c.daysUntil<=3?'bo':'bp'}">${c.daysUntil===0?'¡Hoy!':c.daysUntil===1?'Mañana':c.daysUntil+' días'}</span></div>`).join(''):'<div class="empty"><p>Sin cumpleaños próximos</p></div>';
+}
+
+// Contacts
+async function loadC(){contacts=await api('/api/contacts');groups=await api('/api/groups');popGS();renderC();}
+function popGS(){
+  const f=document.getElementById('cFilter'),c=document.getElementById('cG');
+  const fv=f.value,cv=c.value;
+  f.innerHTML='<option value="">Todos</option>'+groups.map(g=>`<option value="${g.name}">${g.name}</option>`).join('');
+  c.innerHTML='<option value="">Sin grupo</option>'+groups.map(g=>`<option value="${g.name}">${g.name}</option>`).join('');
+  f.value=fv;c.value=cv;
+}
+function renderC(){
+  const q=document.getElementById('cSearch').value.toLowerCase(),gf=document.getElementById('cFilter').value;
+  let fl=contacts.filter(c=>(c.name.toLowerCase().includes(q)||c.phone.includes(q))&&(!gf||c.group_name===gf));
+  const tb=document.getElementById('cTb'),em=document.getElementById('cE');
+  if(!fl.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=fl.map(c=>`<tr><td><strong>${esc(c.name)}</strong></td><td>${esc(c.phone)}</td><td>${fmtD(c.birthday)}</td><td>${c.group_name?`<span class="badge bp">${esc(c.group_name)}</span>`:'—'}</td><td>${c.reminder_days>0?c.reminder_days+' día(s)':'No'}</td><td>${c.active?'<span class="badge bg">Activo</span>':'<span class="badge br">Inactivo</span>'}</td><td><div class="acts"><button class="btn-i" onclick="editC(${c.id})">✏️</button><button class="btn-i d" onclick="delC(${c.id})">🗑️</button></div></td></tr>`).join('');
+}
+function openCM(d=null){
+  document.getElementById('cMT').textContent=d?'Editar contacto':'Nuevo contacto';
+  document.getElementById('cId').value=d?d.id:'';
+  document.getElementById('cN').value=d?d.name:'';
+  document.getElementById('cP').value=d?d.phone:'';
+  document.getElementById('cB').value=d?d.birthday:'';
+  document.getElementById('cG').value=d?d.group_name:'';
+  document.getElementById('cR').value=d?d.reminder_days:1;
+  document.getElementById('cA').checked=d?!!d.active:true;
+  document.getElementById('cMs').value=d?d.message:'';
+  openM('cMod');
+}
+async function editC(id){const c=await api('/api/contacts/'+id);await loadC();openCM(c);}
+async function saveC(){
+  const id=document.getElementById('cId').value;
+  const b={name:document.getElementById('cN').value.trim(),phone:document.getElementById('cP').value.trim(),birthday:document.getElementById('cB').value,group_name:document.getElementById('cG').value,reminder_days:parseInt(document.getElementById('cR').value)||0,active:document.getElementById('cA').checked?1:0,message:document.getElementById('cMs').value.trim()};
+  if(!b.name||!b.phone||!b.birthday){toast('Completa nombre, teléfono y fecha','e');return;}
+  if(id){await api('/api/contacts/'+id,'PUT',b);toast('Contacto actualizado');}else{await api('/api/contacts','POST',b);toast('Contacto creado');}
+  closeM('cMod');loadC();
+}
+async function delC(id){if(!confirm('¿Eliminar contacto?'))return;await api('/api/contacts/'+id,'DELETE');toast('Eliminado','i');loadC();}
+
+// Groups
+async function loadG(){groups=await api('/api/groups');contacts=await api('/api/contacts');renderG();}
+function renderG(){
+  const tb=document.getElementById('gTb'),em=document.getElementById('gE');
+  if(!groups.length){tb.innerHTML='';em.style.display='block';return;}
+  em.style.display='none';
+  tb.innerHTML=groups.map(g=>{const cnt=contacts.filter(c=>c.group_name===g.name).length;return`<tr><td><strong>${esc(g.name)}</strong></td><td><span style="display:inline-block;width:22px;height:22px;border-radius:6px;background:${g.color};vertical-align:middle;"></span></td><td>${cnt}</td><td><div class="acts"><button class="btn-i" onclick="editG(${g.id})">✏️</button><button class="btn-i d" onclick="delG(${g.id})">🗑️</button></div></td></tr>`;}).join('');
+}
+function openGM(d=null){document.getElementById('gMT').textContent=d?'Editar grupo':'Nuevo grupo';document.getElementById('gId').value=d?d.id:'';document.getElementById('gN').value=d?d.name:'';document.getElementById('gCo').value=d?d.color:'#6366f1';openM('gMod');}
+function editG(id){const g=groups.find(x=>x.id===id);if(g)openGM(g);}
+async function saveG(){const id=document.getElementById('gId').value;const b={name:document.getElementById('gN').value.trim(),color:document.getElementById('gCo').value};if(!b.name){toast('Nombre obligatorio','e');return;}if(id){await api('/api/groups/'+id,'PUT',b);toast('Grupo actualizado');}else{await api('/api/groups','POST',b);toast('Grupo creado');}closeM('gMod');loadG();}
+async function delG(id){if(!confirm('¿Eliminar grupo?'))return;await api('/api/groups/'+id,'DELETE');toast('Eliminado','i');loadG();}
+
+// Templates
+async function loadT(){templates=await api('/api/templates');renderT();}
+function renderT(){
+  const el=document.getElementById('tList');
+  if(!templates.length){el.innerHTML='<div class="card"><div class="empty"><div class="empty-ico">💬</div><p>Sin plantillas</p></div></div>';return;}
+  el.innerHTML=templates.map(t=>`<div class="card" style="position:relative;">${t.is_default?'<span class="badge bg" style="position:absolute;top:14px;right:14px;">POR DEFECTO</span>':''}<h4 style="font-weight:700;margin-bottom:6px;">${esc(t.name)}</h4><pre style="background:var(--input);padding:12px;border-radius:8px;font-family:var(--font);font-size:12px;white-space:pre-wrap;color:var(--dim);margin-bottom:12px;border:1px solid var(--border);">${esc(t.template)}</pre><div class="acts"><button class="btn btn-g btn-sm" onclick="editT(${t.id})">✏️ Editar</button><button class="btn btn-d btn-sm" onclick="delT(${t.id})">🗑️ Eliminar</button></div></div>`).join('');
+}
+function openTM(d=null){document.getElementById('tMT').textContent=d?'Editar plantilla':'Nueva plantilla';document.getElementById('tId').value=d?d.id:'';document.getElementById('tN').value=d?d.name:'';document.getElementById('tTx').value=d?d.template:'';document.getElementById('tDf').checked=d?!!d.is_default:false;openM('tMod');}
+function editT(id){const t=templates.find(x=>x.id===id);if(t)openTM(t);}
+async function saveT(){const id=document.getElementById('tId').value;const b={name:document.getElementById('tN').value.trim(),template:document.getElementById('tTx').value.trim(),is_default:document.getElementById('tDf').checked};if(!b.name||!b.template){toast('Completa nombre y mensaje','e');return;}if(id){await api('/api/templates/'+id,'PUT',b);toast('Plantilla actualizada');}else{await api('/api/templates','POST',b);toast('Plantilla creada');}closeM('tMod');loadT();}
+async function delT(id){if(!confirm('¿Eliminar plantilla?'))return;await api('/api/templates/'+id,'DELETE');toast('Eliminada','i');loadT();}
+
+// History
+async function loadH(){const logs=await api('/api/log');const tb=document.getElementById('hTb'),em=document.getElementById('hE');if(!logs.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';tb.innerHTML=logs.map(l=>`<tr><td>${fmtDT(l.sent_at)}</td><td>${esc(l.contact_name||'—')}</td><td><span class="badge ${l.type==='birthday'?'bp':'bo'}">${l.type==='birthday'?'🎂 Cumpleaños':'⏰ Recordatorio'}</span></td><td><span class="badge ${l.status==='sent'?'bg':l.status==='failed'?'br':'bo'}">${l.status}</span></td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(l.message||'')}">${esc(l.message||'—')}</td></tr>`).join('');}
+
+// Settings
+async function loadSets(){
+  const s=await api('/api/settings');
+  const h=document.getElementById('sH');h.innerHTML=Array.from({length:24},(_,i)=>`<option value="${i}" ${i==(s.send_hour||9)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('');
+  const m=document.getElementById('sM');m.innerHTML=[0,15,30,45].map(v=>`<option value="${v}" ${v==(s.send_minute||0)?'selected':''}>${String(v).padStart(2,'0')}</option>`).join('');
+  document.getElementById('sR').checked=s.reminder_enabled==='true';
+}
+async function saveSets(){await api('/api/settings','PUT',{send_hour:document.getElementById('sH').value,send_minute:document.getElementById('sM').value,reminder_enabled:document.getElementById('sR').checked?'true':'false'});toast('Ajustes guardados');}
+
+// Actions
+async function sendTest(){const p=document.getElementById('tPh').value.trim(),m=document.getElementById('tMs').value.trim();if(!p||!m){toast('Completa los campos','e');return;}const r=await api('/api/send-test','POST',{phone:p,message:m});r.success?toast('Enviado'):toast('Error: '+(r.error||'fallo'),'e');}
+async function triggerChk(){await api('/api/trigger-check','POST');toast('Comprobación lanzada','i');}
+
+// Init
+loadDash();
+setInterval(()=>{chkWA();if(document.getElementById('page-whatsapp').classList.contains('active'))updWA();},5000);
+</script>
+</body>
+</html>

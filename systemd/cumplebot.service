@@ -1,0 +1,16 @@
+[Unit]
+Description=CumpleBot — Felicitaciones WhatsApp
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/cumplebot
+ExecStart=/usr/bin/node scripts/server.js
+Restart=on-failure
+RestartSec=10
+Environment=NODE_ENV=production
+Environment=PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+[Install]
+WantedBy=multi-user.target

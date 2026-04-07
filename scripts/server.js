@@ -320,6 +320,7 @@ app.put('/api/contacts/:id', (req, res) => {
 });
 
 app.delete('/api/contacts/:id', (req, res) => {
+  db.prepare('DELETE FROM sent_log WHERE contact_id = ?').run(req.params.id);
   db.prepare('DELETE FROM contacts WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });

@@ -336,7 +336,7 @@ document.querySelectorAll('.nav-item').forEach(n=>{n.addEventListener('click',()
 function toast(m,t='s'){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),3500);}
 function openM(id){document.getElementById(id).classList.add('active');}
 function closeM(id){document.getElementById(id).classList.remove('active');}
-async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);return(await fetch(u,o)).json();}
+async function api(u,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'},credentials:'same-origin'};if(b)o.body=JSON.stringify(b);const r=await fetch(u,o);if(!r.ok){let msg='Error '+r.status;try{const j=await r.json();msg=j.error||msg;}catch{msg=await r.text()||msg;}throw new Error(msg);}return r.json();}
 function fmtD(d){if(!d)return'—';const[,m,dy]=d.split('-');const ms=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];return parseInt(dy)+' '+ms[parseInt(m)-1];}
 function fmtDT(d){if(!d)return'—';return new Date(d).toLocaleString('es-ES',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
@@ -412,7 +412,7 @@ async function saveC(){
   if(id){await api('/api/contacts/'+id,'PUT',b);toast('Contacto actualizado');}else{await api('/api/contacts','POST',b);toast('Contacto creado');}
   closeM('cMod');loadC();
 }
-async function delC(id){if(!confirm('¿Eliminar contacto?'))return;await api('/api/contacts/'+id,'DELETE');toast('Eliminado','i');loadC();}
+async function delC(id){if(!confirm('¿Eliminar contacto?'))return;try{await api('/api/contacts/'+id,'DELETE');toast('Eliminado','i');}catch(e){toast('Error al eliminar: '+e.message,'e');}await loadC();}
 
 // Groups
 async function loadG(){groups=await api('/api/groups');contacts=await api('/api/contacts');renderG();}
@@ -425,7 +425,7 @@ function renderG(){
 function openGM(d=null){document.getElementById('gMT').textContent=d?'Editar grupo':'Nuevo grupo';document.getElementById('gId').value=d?d.id:'';document.getElementById('gN').value=d?d.name:'';document.getElementById('gCo').value=d?d.color:'#6366f1';openM('gMod');}
 function editG(id){const g=groups.find(x=>x.id===id);if(g)openGM(g);}
 async function saveG(){const id=document.getElementById('gId').value;const b={name:document.getElementById('gN').value.trim(),color:document.getElementById('gCo').value};if(!b.name){toast('Nombre obligatorio','e');return;}if(id){await api('/api/groups/'+id,'PUT',b);toast('Grupo actualizado');}else{await api('/api/groups','POST',b);toast('Grupo creado');}closeM('gMod');loadG();}
-async function delG(id){if(!confirm('¿Eliminar grupo?'))return;await api('/api/groups/'+id,'DELETE');toast('Eliminado','i');loadG();}
+async function delG(id){if(!confirm('¿Eliminar grupo?'))return;try{await api('/api/groups/'+id,'DELETE');toast('Eliminado','i');}catch(e){toast('Error al eliminar: '+e.message,'e');}await loadG();}
 
 // Templates
 async function loadT(){templates=await api('/api/templates');renderT();}
@@ -437,7 +437,7 @@ function renderT(){
 function openTM(d=null){document.getElementById('tMT').textContent=d?'Editar plantilla':'Nueva plantilla';document.getElementById('tId').value=d?d.id:'';document.getElementById('tN').value=d?d.name:'';document.getElementById('tTx').value=d?d.template:'';document.getElementById('tDf').checked=d?!!d.is_default:false;openM('tMod');}
 function editT(id){const t=templates.find(x=>x.id===id);if(t)openTM(t);}
 async function saveT(){const id=document.getElementById('tId').value;const b={name:document.getElementById('tN').value.trim(),template:document.getElementById('tTx').value.trim(),is_default:document.getElementById('tDf').checked};if(!b.name||!b.template){toast('Completa nombre y mensaje','e');return;}if(id){await api('/api/templates/'+id,'PUT',b);toast('Plantilla actualizada');}else{await api('/api/templates','POST',b);toast('Plantilla creada');}closeM('tMod');loadT();}
-async function delT(id){if(!confirm('¿Eliminar plantilla?'))return;await api('/api/templates/'+id,'DELETE');toast('Eliminada','i');loadT();}
+async function delT(id){if(!confirm('¿Eliminar plantilla?'))return;try{await api('/api/templates/'+id,'DELETE');toast('Eliminada','i');}catch(e){toast('Error al eliminar: '+e.message,'e');}await loadT();}
 
 // History
 async function loadH(){const logs=await api('/api/log');const tb=document.getElementById('hTb'),em=document.getElementById('hE');if(!logs.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';tb.innerHTML=logs.map(l=>`<tr><td>${fmtDT(l.sent_at)}</td><td>${esc(l.contact_name||'—')}</td><td><span class="badge ${l.type==='birthday'?'bp':'bo'}">${l.type==='birthday'?'🎂 Cumpleaños':'⏰ Recordatorio'}</span></td><td><span class="badge ${l.status==='sent'?'bg':l.status==='failed'?'br':'bo'}">${l.status}</span></td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(l.message||'')}">${esc(l.message||'—')}</td></tr>`).join('');}

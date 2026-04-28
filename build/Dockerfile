@@ -14,7 +14,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 COPY package.json ./
 RUN npm install --production && apk del python3 make g++
 
-COPY scripts/ ./scripts/
+COPY src/ ./src/
 COPY public/ ./public/
 
 RUN mkdir -p /app/data
@@ -30,4 +30,4 @@ ENV TZ=Europe/Madrid
 ENV CHROMIUM_PATH=/usr/bin/chromium-browser
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["node", "scripts/server.js"]
+CMD ["node", "src/server.js"]

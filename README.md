@@ -2,40 +2,31 @@
 
 Servicio web para enviar felicitaciones de cumpleaños automáticas por WhatsApp.
 
-## Requisitos
-
-- Node.js 20+
-- Chromium (para whatsapp-web.js)
-
-## Instalación
-
-```bash
-git clone https://github.com/f1rul4yx/cumplebot.git
-cd cumplebot
-cp config/.env.example config/.env
-sudo ./install.sh
-```
-
-Editar `config/.env` con los datos de tu entorno antes de instalar:
-
-```
-PORT=3000
-TZ=Europe/Madrid
-AUTH_USER=admin
-AUTH_PASS=cumplebot
-DEFAULT_COUNTRY_CODE=34
-```
-
 ## Uso
 
-Accede a `http://TU_IP:3000` e inicia sesión con las credenciales de `config/.env`.
+```bash
+docker compose up -d
+```
+
+Accede a `http://TU_IP:3000` e inicia sesión (usuario `admin`, contraseña `cumplebot` por defecto).
 
 Ve a la sección **WhatsApp**, escanea el QR con tu móvil y empieza a añadir contactos.
 
-## Desinstalación
+## Variables de entorno
+
+| Variable | Por defecto | Descripción |
+|---|---|---|
+| `AUTH_USER` | `admin` | Usuario de acceso |
+| `AUTH_PASS` | `cumplebot` | Contraseña de acceso |
+| `TZ` | `Europe/Madrid` | Zona horaria |
+| `DEFAULT_COUNTRY_CODE` | `34` | Prefijo telefónico sin `+` |
+| `PORT` | `3000` | Puerto del servidor |
+
+## Construcción de la imagen
 
 ```bash
-sudo ./remove.sh
+docker build -t f1rul4yx/cumplebot:latest ./build
+docker push f1rul4yx/cumplebot:latest
 ```
 
 ## Funcionalidades

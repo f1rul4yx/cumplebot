@@ -1,0 +1,16 @@
+services:
+  cumplebot:
+    image: f1rul4yx/cumplebot:latest
+    container_name: cumplebot
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=3000
+      - TZ=Europe/Madrid
+      - NODE_ENV=production
+      - AUTH_USER=${AUTH_USER:-admin}
+      - AUTH_PASS=${AUTH_PASS:-cumplebot}
+      - DEFAULT_COUNTRY_CODE=${DEFAULT_COUNTRY_CODE:-34}

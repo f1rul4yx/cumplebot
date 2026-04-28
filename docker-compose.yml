@@ -2,7 +2,7 @@ services:
   cumplebot:
     image: f1rul4yx/cumplebot:latest
     container_name: cumplebot
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
@@ -14,3 +14,8 @@ services:
       - AUTH_USER=${AUTH_USER:-admin}
       - AUTH_PASS=${AUTH_PASS:-cumplebot}
       - DEFAULT_COUNTRY_CODE=${DEFAULT_COUNTRY_CODE:-34}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -11,7 +11,7 @@ const cron = require('node-cron');
 const Database = require('better-sqlite3');
 const path = require('path');
 
-require('dotenv').config({ path: path.join(__dirname, '..', 'config', '.env') });
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
